@@ -1,0 +1,113 @@
+PUT /user
+{
+  "settings": {
+    "number_of_shards": 1,
+    "refresh_interval": "1s",
+    "analysis": {
+      "tokenizer": {
+        "custom_tokenizer": {
+          "type": "char_group",
+          "tokenize_on_chars": [
+            "whitespace",
+            "(",
+            ")",
+            "-",
+            "\n",
+            ".",
+            ",",
+            "/"
+          ]
+        }
+      },
+      "filter": {
+        "edge_ngram_filter": {
+          "type": "edge_ngram",
+          "min_gram": 1,
+          "max_gram": 20
+        }
+      },
+      "analyzer": {
+        "edge_ngram_analyzer": {
+          "tokenizer": "custom_tokenizer",
+          "filter": ["lowercase", "edge_ngram_filter"]
+        },
+        "search_analyzer": {
+          "tokenizer": "custom_tokenizer",
+          "filter": ["lowercase"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "description": {
+        "type": "text",
+        "analyzer": "edge_ngram_analyzer",
+        "search_analyzer": "search_analyzer",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "normalizer": "lowercase"
+          }
+        }
+      },
+      "name": {
+        "type": "text",
+        "analyzer": "edge_ngram_analyzer",
+        "search_analyzer": "search_analyzer",
+        "fields": {
+            "keyword": {
+              "type": "keyword",
+              "normalizer": "lowercase"
+            }
+          }
+      }
+    }
+  }
+}
+
+
+-----
+
+
+POST /user/_doc/
+{
+  "name": "John",
+  "description": "hummus is great"
+}
+
+POST /user/_doc/
+{
+  "name": "John",
+  "description": "hummus is great, I love hummus!"
+}
+
+POST /user/_doc/
+{
+  "name": "John",
+  "description": "hummus"
+}
+
+----
+
+GET /user/_search
+{
+  "query": {
+    "match": {
+      "name.keyword": "John"
+    }
+  }
+}
+
+----
+
+GET /user/_termvectors/VrYrlIABxHnQl1ERL4A3?fields=description
+
+---
+
+POST _sql?format=txt
+{
+  "query": """
+  SELECT * FROM "user"
+  """
+}
